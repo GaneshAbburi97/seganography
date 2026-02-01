@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Encrypted Image Sender</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h2>🔐 Encrypted Image Sender</h2>
+
+    <form action="/encrypt" method="post" enctype="multipart/form-data">
+
+        <label>Secret Message</label>
+        <textarea name="message" required></textarea>
+
+        <label>Password</label>
+        <input type="password" name="password" required>
+
+        <label>Select Image (PNG)</label>
+        <input type="file" name="image" accept="image/png" required>
+
+        <button type="submit">Encrypt & Download Image</button>
+    </form>
+
+    <div class="link">
+        <a href="/decrypt">Go to Decrypt Page →</a>
+    </div>
+
+    <div class="footer">
+        Secure Communication Using Cryptography & Steganography
+    </div>
+</div>
+
+</body>
+</html>

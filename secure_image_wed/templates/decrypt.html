@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Encrypted Image Receiver</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h2>🔓 Encrypted Image Receiver</h2>
+
+    <form action="/decrypt" method="post" enctype="multipart/form-data">
+
+        <label>Password</label>
+        <input type="password" name="password" required>
+
+        <label>Select Encrypted Image</label>
+        <input type="file" name="image" accept="image/png" required>
+
+        <button type="submit">Extract & Decrypt Message</button>
+    </form>
+
+    <div class="link">
+        <a href="/">← Back to Encrypt Page</a>
+    </div>
+
+    <div class="footer">
+        Only authorized users can view the hidden message
+    </div>
+</div>
+
+</body>
+</html>
