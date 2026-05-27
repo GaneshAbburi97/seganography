@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, send_file
 from PIL import Image
 from cryptography.fernet import Fernet
-import base64, hashlib, os, uuid
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+import base64, os, uuid
 
 app = Flask(__name__)
 
@@ -10,16 +12,21 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 OUTPUT_FOLDER = os.path.join(BASE_DIR, "outputs")
 ALLOWED_EXTENSIONS = {"png"}
 DELIMITER = "1111111111111110"
+SALT_SIZE = 16
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # ---------- Utility Functions ----------
 
-def derive_key(password):
-    return base64.urlsafe_b64encode(
-        hashlib.sha256(password.encode()).digest()
+def derive_key(password, salt):
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=200_000,
     )
+    return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
 def to_binary(data):
     return ''.join(format(byte, '08b') for byte in data)
@@ -50,11 +57,13 @@ def encrypt():
     image_path = os.path.join(UPLOAD_FOLDER, filename)
     image.save(image_path)
 
-    key = derive_key(password)
+    salt = os.urandom(SALT_SIZE)
+    key = derive_key(password, salt)
     cipher = Fernet(key)
     encrypted_msg = cipher.encrypt(message.encode())
 
-    binary_data = to_binary(encrypted_msg) + DELIMITER
+    payload = salt + encrypted_msg
+    binary_data = to_binary(payload) + DELIMITER
 
     img = Image.open(image_path).convert("RGB")
     max_bits = img.width * img.height
@@ -116,11 +125,15 @@ def decrypt():
     if not hidden_bits or len(hidden_bits) % 8 != 0:
         return "Hidden data is corrupted", 400
     data_bytes = int(hidden_bits, 2).to_bytes(len(hidden_bits) // 8, byteorder='big')
+    if len(data_bytes) <= SALT_SIZE:
+        return "Hidden data is corrupted", 400
 
     try:
-        key = derive_key(password)
+        salt = data_bytes[:SALT_SIZE]
+        encrypted_msg = data_bytes[SALT_SIZE:]
+        key = derive_key(password, salt)
         cipher = Fernet(key)
-        message = cipher.decrypt(data_bytes).decode()
+        message = cipher.decrypt(encrypted_msg).decode()
         return f"<h2>Decrypted Message:</h2><p>{message}</p>"
     except:
         return "Wrong password or corrupted image"
